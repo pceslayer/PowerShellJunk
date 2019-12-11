@@ -1,0 +1,42 @@
+#This script can be used to maintain your current IP within GoDaddy.
+#Really useful if you do not have a static IP and want to have a dynamic DNS presence.
+#
+#
+#Get script RUN path
+$absolutePath = Split-Path $MyInvocation.MyCommand.Path -Parent
+#Query ipify for Current IP and set to variable
+$currentIP = ((Invoke-WebRequest http://api.ipify.org?format=json).content | ConvertFrom-JSON).ip
+#Hosted WEB Domain
+$domain = ''
+#DNS Record Type
+$type = 'A'
+#DNS Record Alias # alias.mydomain.com
+$alias = '@'
+#Set GoDaddy API Key & Secret
+$key = ''
+$secret = ''
+#Create new JSON file with currentIP and TTL
+$json = ConvertTo-Json @(@{data=$currentIP;ttl=3600})
+#Build Header
+$headers = @{}
+$headers["Authorization"] = 'sso-key ' + $key + ':' + $secret
+
+#Push attributes to GoDaddy and log if error
+try {
+	Invoke-WebRequest https://api.godaddy.com/v1/domains/$domain/records/$type/$alias  -Method put -Headers $headers -Body $json -ContentType "application/json"
+}
+catch {
+    $result = $_.Exception.Response.GetResponseStream()
+    $reader = New-Object System.IO.StreamReader($result)
+    $reader.BaseStream.Position = 0
+    $reader.DiscardBufferedData()
+    $error = $reader.ReadToEnd() | ConvertFrom-Json | Format-List | Out-String
+	$logOutput = "==================================
+Domain: $domain
+Error Occurence: $(Get-Date -Format ddMMMyyyy-HH:MM:SS)
+$error
+=================================="
+	$logOutput | Out-File "$absolutePath\$domain-ErrorLog-$(Get-Date -format yyyy).txt" -Append
+}
+
+exit
