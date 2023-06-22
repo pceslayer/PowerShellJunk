@@ -10,7 +10,7 @@ $currentIP = ((Invoke-WebRequest http://api.ipify.org?format=json).content | Con
 $domain = ''
 #DNS Record Type
 $type = 'A'
-#DNS Record Alias # alias.mydomain.com
+#DNS Record Alias # alias.mydomain.com or @ for primary domain
 $alias = '@'
 #Set GoDaddy API Key & Secret
 $key = ''
@@ -23,7 +23,7 @@ $headers["Authorization"] = 'sso-key ' + $key + ':' + $secret
 
 #Push attributes to GoDaddy and log if error
 try {
-	Invoke-WebRequest https://api.godaddy.com/v1/domains/$domain/records/$type/$alias  -Method put -Headers $headers -Body $json -ContentType "application/json"
+    Invoke-WebRequest https://api.godaddy.com/v1/domains/$domain/records/$type/$alias  -Method put -Headers $headers -Body $json -ContentType "application/json"
 }
 catch {
     $result = $_.Exception.Response.GetResponseStream()
@@ -31,12 +31,12 @@ catch {
     $reader.BaseStream.Position = 0
     $reader.DiscardBufferedData()
     $error = $reader.ReadToEnd() | ConvertFrom-Json | Format-List | Out-String
-	$logOutput = "==================================
+    $logOutput = "==================================
 Domain: $domain
 Error Occurence: $(Get-Date -Format ddMMMyyyy-HH:MM:SS)
 $error
 =================================="
-	$logOutput | Out-File "$absolutePath\$domain-ErrorLog-$(Get-Date -format yyyy).txt" -Append
+    $logOutput | Out-File "$absolutePath\$domain-ErrorLog-$(Get-Date -format yyyy).txt" -Append
 }
 
 exit
